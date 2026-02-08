@@ -1,0 +1,68 @@
+﻿<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Super Bowl Squares</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="page">
+      <header class="header">
+        <div class="title-block">
+          <p class="eyebrow">Super Bowl Squares</p>
+          <h1>Claim Your Square</h1>
+          <p class="subtitle">Pick a square and lock it in with your initials.</p>
+        </div>
+        <div class="status">
+          <div class="status-row">
+            <span class="status-label">Board</span>
+            <span id="board-status" class="status-value">Loading</span>
+          </div>
+          <div class="status-row">
+            <span class="status-label">Updated</span>
+            <span id="last-updated" class="status-value">--</span>
+          </div>
+        </div>
+      </header>
+
+      <section class="controls">
+        <div class="selection">
+          <span class="selection-label">Selected</span>
+          <span id="selected-cell" class="selection-value">None</span>
+        </div>
+        <form id="claim-form" class="claim-form" autocomplete="off">
+          <input
+            id="initials"
+            name="initials"
+            type="text"
+            maxlength="10"
+            placeholder="Initials (1-10)"
+            aria-label="Initials"
+          />
+          <button id="claim-button" type="submit">Claim Square</button>
+        </form>
+        <div id="form-message" class="form-message" role="status"></div>
+      </section>
+
+      <section class="board-section">
+        <div class="axis-title axis-top">Away digits (top)</div>
+        <div class="axis-title axis-left">Home digits (left)</div>
+        <div id="board" class="board" aria-live="polite"></div>
+      </section>
+
+      <footer class="footer">
+        <span>Squares lock instantly. Board refreshes every few seconds.</span>
+        <span>Initials are limited to 10 letters or numbers.</span>
+      </footer>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>

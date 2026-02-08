@@ -1,0 +1,8 @@
+﻿name = "superbowl-squares"
+compatibility_date = "2025-02-01"
+pages_build_output_dir = "public"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "superbowl-squares"
+database_id = "REPLACE_WITH_YOUR_DATABASE_ID"
