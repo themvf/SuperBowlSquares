@@ -48,12 +48,22 @@
           />
           <button id="claim-button" type="submit">Claim Square</button>
         </form>
+        <div class="admin-controls">
+          <input
+            id="admin-key"
+            type="password"
+            placeholder="Admin code"
+            aria-label="Admin code"
+          />
+          <button id="generate-button" type="button">Generate numbers</button>
+          <p class="admin-hint">Admin: generate numbers after all squares are claimed.</p>
+        </div>
         <div id="form-message" class="form-message" role="status"></div>
       </section>
 
       <section class="board-section">
-        <div class="axis-title axis-top">Away digits (top)</div>
-        <div class="axis-title axis-left">Home digits (left)</div>
+        <div id="axis-top-title" class="axis-title axis-top">Awaiting numbers</div>
+        <div id="axis-left-title" class="axis-title axis-left">Awaiting numbers</div>
         <div id="board" class="board" aria-live="polite"></div>
       </section>
 

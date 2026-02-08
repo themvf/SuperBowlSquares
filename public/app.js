@@ -8,10 +8,16 @@ const initialsInput = document.getElementById("initials");
 const claimForm = document.getElementById("claim-form");
 const claimButton = document.getElementById("claim-button");
 const messageEl = document.getElementById("form-message");
+const axisTopTitleEl = document.getElementById("axis-top-title");
+const axisLeftTitleEl = document.getElementById("axis-left-title");
+const adminKeyInput = document.getElementById("admin-key");
+const generateButton = document.getElementById("generate-button");
 
 let state = {
-  axisX: [],
-  axisY: [],
+  axisX: null,
+  axisY: null,
+  teamX: null,
+  teamY: null,
   squares: [],
 };
 
@@ -42,9 +48,18 @@ function normalizeInitials(value) {
   return value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10);
 }
 
-function setSelected(id, xDigit, yDigit) {
-  selected = { id, xDigit, yDigit };
-  selectedEl.textContent = `Away ${xDigit} / Home ${yDigit}`;
+function axesGenerated() {
+  return (
+    Array.isArray(state.axisX) &&
+    Array.isArray(state.axisY) &&
+    state.axisX.length === 10 &&
+    state.axisY.length === 10
+  );
+}
+
+function setSelected(id, label) {
+  selected = { id, label };
+  selectedEl.textContent = label;
 }
 
 function clearSelected() {
@@ -52,31 +67,59 @@ function clearSelected() {
   selectedEl.textContent = "None";
 }
 
+function updateAxisTitles() {
+  if (axesGenerated()) {
+    axisTopTitleEl.textContent = `${state.teamX || "Team X"} digits`;
+    axisLeftTitleEl.textContent = `${state.teamY || "Team Y"} digits`;
+    return;
+  }
+  axisTopTitleEl.textContent = "Awaiting numbers";
+  axisLeftTitleEl.textContent = "Awaiting numbers";
+}
+
+function updateGenerateButton(claimedCount) {
+  if (axesGenerated()) {
+    generateButton.disabled = true;
+    generateButton.textContent = "Numbers generated";
+    return;
+  }
+
+  if (claimedCount < 100) {
+    generateButton.disabled = true;
+    generateButton.textContent = "Generate numbers";
+    return;
+  }
+
+  generateButton.disabled = false;
+  generateButton.textContent = "Generate numbers";
+}
+
 function buildBoard() {
   boardEl.innerHTML = "";
 
-  const axisX = state.axisX || [];
-  const axisY = state.axisY || [];
+  const axisReady = axesGenerated();
+  const axisX = axisReady ? state.axisX : Array.from({ length: 10 }, () => "");
+  const axisY = axisReady ? state.axisY : Array.from({ length: 10 }, () => "");
   const squares = new Map(
     (state.squares || []).map((square) => [square.id, square.initials])
   );
 
   const corner = document.createElement("div");
   corner.className = "cell corner";
-  corner.textContent = "Scores";
+  corner.textContent = axisReady ? "Scores" : "Squares";
   boardEl.appendChild(corner);
 
   axisX.forEach((digit) => {
     const cell = document.createElement("div");
     cell.className = "cell axis";
-    cell.textContent = digit;
+    cell.textContent = axisReady ? digit : "";
     boardEl.appendChild(cell);
   });
 
   axisY.forEach((yDigit, row) => {
     const axisCell = document.createElement("div");
     axisCell.className = "cell axis";
-    axisCell.textContent = yDigit;
+    axisCell.textContent = axisReady ? yDigit : "";
     boardEl.appendChild(axisCell);
 
     axisX.forEach((xDigit, col) => {
@@ -86,10 +129,14 @@ function buildBoard() {
       cell.className = "cell square";
       cell.type = "button";
       cell.dataset.id = id;
-      cell.dataset.x = xDigit;
-      cell.dataset.y = yDigit;
+
+      const label = axisReady
+        ? `Patriots ${xDigit} / Seahawks ${yDigit}`
+        : `Row ${row + 1} / Col ${col + 1}`;
+
+      cell.dataset.label = label;
       cell.textContent = initials || "";
-      cell.title = `Away ${xDigit} / Home ${yDigit}`;
+      cell.title = label;
 
       if (initials) {
         cell.classList.add("claimed");
@@ -100,7 +147,7 @@ function buildBoard() {
         if (cell.classList.contains("claimed")) {
           return;
         }
-        setSelected(id, xDigit, yDigit);
+        setSelected(id, label);
         initialsInput.focus();
       });
 
@@ -122,10 +169,12 @@ async function fetchState() {
     }
     state = await response.json();
     buildBoard();
+    updateAxisTitles();
 
     const claimed = (state.squares || []).filter((square) => square.initials)
       .length;
     setBoardStatus(`${claimed}/100 claimed`);
+    updateGenerateButton(claimed);
     setLastUpdated(new Date());
   } catch (error) {
     setBoardStatus("Offline");
@@ -186,6 +235,62 @@ initialsInput.addEventListener("input", (event) => {
   const normalized = normalizeInitials(event.target.value);
   if (event.target.value !== normalized) {
     event.target.value = normalized;
+  }
+});
+
+generateButton.addEventListener("click", async () => {
+  setMessage("");
+
+  if (axesGenerated()) {
+    setMessage("Numbers already generated.");
+    return;
+  }
+
+  const claimed = (state.squares || []).filter((square) => square.initials)
+    .length;
+  if (claimed < 100) {
+    setMessage("All 100 squares must be claimed first.");
+    return;
+  }
+
+  const adminKey = adminKeyInput.value.trim();
+  if (!adminKey) {
+    setMessage("Enter the admin code to generate numbers.");
+    return;
+  }
+
+  generateButton.disabled = true;
+
+  try {
+    const response = await fetch("/api/generate", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ adminKey }),
+    });
+
+    if (response.ok) {
+      adminKeyInput.value = "";
+      setMessage("Numbers generated.");
+      await fetchState();
+      return;
+    }
+
+    const payload = await response.json().catch(() => ({}));
+    if (response.status === 401) {
+      setMessage("Invalid admin code.");
+    } else if (response.status === 409) {
+      setMessage(payload.error || "Board is not ready.");
+    } else {
+      setMessage(payload.error || "Unable to generate numbers.");
+    }
+  } catch (error) {
+    setMessage("Unable to generate numbers.");
+  } finally {
+    const claimedCount = (state.squares || []).filter((square) => square.initials)
+      .length;
+    updateGenerateButton(claimedCount);
   }
 });
 
