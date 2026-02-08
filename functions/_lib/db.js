@@ -1,20 +1,6 @@
 ﻿const AXIS_X_KEY = "axis_x";
 const AXIS_Y_KEY = "axis_y";
-
-function randomInt(max) {
-  const buffer = new Uint32Array(1);
-  crypto.getRandomValues(buffer);
-  return Math.floor((buffer[0] / 2 ** 32) * max);
-}
-
-function shuffleDigits() {
-  const digits = Array.from({ length: 10 }, (_, index) => index);
-  for (let i = digits.length - 1; i > 0; i -= 1) {
-    const j = randomInt(i + 1);
-    [digits[i], digits[j]] = [digits[j], digits[i]];
-  }
-  return digits;
-}
+const DEFAULT_AXIS = Array.from({ length: 10 }, (_, index) => index);
 
 function parseAxis(value) {
   if (!value) {
@@ -29,6 +15,13 @@ function parseAxis(value) {
     return null;
   }
   return null;
+}
+
+function isDefaultAxis(axis) {
+  if (!axis || axis.length !== DEFAULT_AXIS.length) {
+    return false;
+  }
+  return axis.every((digit, index) => digit === DEFAULT_AXIS[index]);
 }
 
 async function ensureSchema(db) {
@@ -54,12 +47,12 @@ async function ensureAxes(db) {
   const axisX = parseAxis(xRow?.value);
   const axisY = parseAxis(yRow?.value);
 
-  if (axisX && axisY) {
+  if (isDefaultAxis(axisX) && isDefaultAxis(axisY)) {
     return { axisX, axisY };
   }
 
-  const newAxisX = shuffleDigits();
-  const newAxisY = shuffleDigits();
+  const newAxisX = DEFAULT_AXIS;
+  const newAxisY = DEFAULT_AXIS;
 
   await db.batch([
     db
